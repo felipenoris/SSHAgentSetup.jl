@@ -24,7 +24,7 @@ Parses the result from command `ssh-agent -s` as variables `SSH_AUTH_SOCK` and `
 
 ```julia
 str = "SSH_AUTH_SOCK=/tmp/ssh-Spqsh9i4sw6Z/agent.4558; export SSH_AUTH_SOCK;\nSSH_AGENT_PID=4559; export SSH_AGENT_PID;\necho Agent pid 4559;"
-result = parse_ssh_agent_variables(str)
+result = SSHAgentSetup.parse_ssh_agent_variables(str)
 @assert result["SSH_AUTH_SOCK"] == "/tmp/ssh-Spqsh9i4sw6Z/agent.4558"
 @assert result["SSH_AGENT_PID"] == "4559"
 ```
@@ -34,10 +34,14 @@ function parse_ssh_agent_variables(ssh_agent_output::AbstractString) :: Dict{Str
     rgx = r"SSH_AUTH_SOCK=(?<SSH_AUTH_SOCK>[^;]+)[\S\s]*SSH_AGENT_PID=(?<SSH_AGENT_PID>\d+)"
     m = match(rgx, ssh_agent_output)
 
-    return Dict{String, String}(
-            "SSH_AUTH_SOCK" => m[:SSH_AUTH_SOCK],
-            "SSH_AGENT_PID" => m[:SSH_AGENT_PID],
-        )
+    result = Dict{String, String}()
+
+    for expected_key in (:SSH_AUTH_SOCK, :SSH_AGENT_PID)
+        !haskey(m, expected_key) && error("Failed to parse `$expected_key` from `ssh-agent` output")
+        result[string(expected_key)] = m[expected_key]
+    end
+
+    return result
 end
 
 function is_agent_up() :: Bool
