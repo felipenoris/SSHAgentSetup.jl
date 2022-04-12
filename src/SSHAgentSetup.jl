@@ -44,10 +44,23 @@ function parse_ssh_agent_variables(ssh_agent_output::AbstractString) :: Dict{Str
     return result
 end
 
+"""
+    is_agent_up() :: Bool
+
+Checks wether `ssh-agent` is running.
+
+Looks for `SSH_AUTH_SOCK` environment variable.
+"""
 function is_agent_up() :: Bool
     return get(ENV, "SSH_AUTH_SOCK", nothing) !== nothing
 end
 
+"""
+    kill_agent()
+
+Runs `ssh-agent -k` to kill the current agent,
+and unset env variables `SSH_AUTH_SOCK` and `SSH_AGENT_PID`.
+"""
 function kill_agent()
     if is_agent_up()
         @info("Killing ssh-agent")
@@ -59,6 +72,12 @@ function kill_agent()
     nothing
 end
 
+"""
+    setup(; kill_agent_atexit::Bool=false)
+
+Runs `ssh-agent -s` and exports env variables `SSH_AUTH_SOCK` and `SSH_AGENT_PID`
+with the result from that command.
+"""
 function setup(; kill_agent_atexit::Bool=false)
     if is_agent_up()
         @info("ssh-agent is already present")
@@ -78,6 +97,11 @@ function setup(; kill_agent_atexit::Bool=false)
     nothing
 end
 
+"""
+    add_key(key_file::AbstractString)
+
+Runs `ssh-add \$key_file`.
+"""
 function add_key(key_file::AbstractString)
     @assert isfile(key_file) "Key file `$key_file` not found"
     run(`ssh-add $key_file`)
