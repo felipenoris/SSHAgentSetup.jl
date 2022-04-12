@@ -56,14 +56,14 @@ function is_agent_up() :: Bool
 end
 
 """
-    kill_agent()
+    kill_agent(; quiet::Bool=false)
 
 Runs `ssh-agent -k` to kill the current agent,
 and unset env variables `SSH_AUTH_SOCK` and `SSH_AGENT_PID`.
 """
-function kill_agent()
+function kill_agent(; quiet::Bool=false)
     if is_agent_up()
-        @info("Killing ssh-agent")
+        !quiet && @info("Killing ssh-agent")
         run(`ssh-agent -k`)
         delete!(ENV, "SSH_AUTH_SOCK")
         delete!(ENV, "SSH_AGENT_PID")
@@ -73,19 +73,19 @@ function kill_agent()
 end
 
 """
-    setup(; kill_agent_atexit::Bool=false)
+    setup(; kill_agent_atexit::Bool=false, quiet::Bool=false)
 
 Runs `ssh-agent -s` and exports env variables `SSH_AUTH_SOCK` and `SSH_AGENT_PID`
 with the result from that command.
 """
-function setup(; kill_agent_atexit::Bool=false)
+function setup(; kill_agent_atexit::Bool=false, quiet::Bool=false)
     if is_agent_up()
-        @info("ssh-agent is already present")
+        !quiet && @info("ssh-agent is already present")
     else
-        @info("starting ssh-agent")
+        !quiet && @info("starting ssh-agent")
         agent_data = parse_ssh_agent_variables(readchomp(`ssh-agent -s`))
         for (k, v) in agent_data
-            @info("Exporting: `$k=$v`")
+            !quiet && @info("Exporting: `$k=$v`")
             ENV[k] = v
         end
 
